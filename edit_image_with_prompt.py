@@ -4,22 +4,25 @@ from PIL import Image
 from io import BytesIO
 
 from diffusers import StableDiffusionImg2ImgPipeline
+from transformers import pipeline
+
+# clip_model = CLIPModel.from_pretrained("openai/clip-vit-base-patch32")
+# clip_processor = CLIPProcessor.from_pretrained("openai/clip-vit-base-patch32")
 
 device = "cuda:1"
 model_id_or_path = "runwayml/stable-diffusion-v1-5"
 pipe = StableDiffusionImg2ImgPipeline.from_pretrained(model_id_or_path, torch_dtype=torch.float16)
 pipe = pipe.to(device)
 
-# url = "https://raw.githubusercontent.com/CompVis/stable-diffusion/main/assets/stable-samples/img2img/sketch-mountains-input.jpg"
-# response = requests.get(url)
-# init_image = Image.open(BytesIO(response.content)).convert("RGB")
-
 init_image = Image.open("/mnt/nas/swethamagesh/emotion/Asyrp_official/test_images/afhq/contents/flickr_dog_000772.png")
 # init_image = init_image.resize((768, 512))
 init_image.thumbnail((512, 512))
 
-prompt = "a cartoon of a dog with a happy expression"
-# 
+image_to_text = pipeline("image-to-text", model="nlpconnect/vit-gpt2-image-captioning")
+prompt = image_to_text("/mnt/nas/swethamagesh/emotion/Run_2/Accepting adolescents film/000c866c-800.jpg")
+print(prompt[0]['generated_text'])
+
+prompt = prompt[0]['generated_text']
 # images = pipe(prompt=prompt, image=init_image).images
 images = pipe(prompt=prompt, image=init_image, strength=0.75, guidance_scale=7.5).images
-images[0].save("/mnt/nas/swethamagesh/emotion/PiedPiper/editted_image.png")
+images[0].save("/mnt/nas/swethamagesh/emotion/PiedPiper/edited_image.png")
