@@ -8,6 +8,10 @@
 3. Textual inversion
 - colab file (starter) not useful
 - check lora nd dreambooth code
+4.StyleGAN
+ - images generated were giving good results for familiar data, new images suffer from distortions like(closed eyes, background mixing, jumbled facial features)
+ github link: 
+ (https://github.com/IIGROUP/TediGAN)
 
 -----
  ## Notes
@@ -18,3 +22,4 @@
 
 ## Other ideas
 ###
+
