@@ -12,6 +12,12 @@
  - images generated were giving good results for familiar data, new images suffer from distortions like(closed eyes, background mixing, jumbled facial features)
  github link: 
  (https://github.com/IIGROUP/TediGAN)
+5. Face-flex
+  - This GitHub project employs Variational Autoencoders (VAEs) to modify facial expressions
+  - Emphasis on adding specific emotions to images
+  - Identified distorted outputs images
+  - Project predominantly generates smiling emotions, overlooking others
+ 
 
 -----
  ## Notes
