@@ -1,28 +1,67 @@
-import requests
-import torch
 from PIL import Image
-from io import BytesIO
 
-from diffusers import StableDiffusionImg2ImgPipeline
-from transformers import pipeline
+# Import necessary modules
+from transformers import ViTFeatureExtractor, AutoTokenizer, VisionEncoderDecoderModel
+from diffusers import StableDiffusionPipeline
+import torch
 
-# clip_model = CLIPModel.from_pretrained("openai/clip-vit-base-patch32")
-# clip_processor = CLIPProcessor.from_pretrained("openai/clip-vit-base-patch32")
+# Function to predict text description of an image
+def predict(image, device="cuda:1"):
+    """
+    Predict the text description of an image.
+    
+    Args:
+        image (PIL.Image): Image to be described
+        device (str): Device to run the model on (default is "cuda:1")
+    
+    Returns:
+        list of str: Predicted text description of the image
+    """
+    # Load pre-trained model and tokenizer
+    loc = "ydshieh/vit-gpt2-coco-en"
+    feature_extractor = ViTFeatureExtractor.from_pretrained(loc)
+    tokenizer = AutoTokenizer.from_pretrained(loc)
+    model = VisionEncoderDecoderModel.from_pretrained(loc)
 
-device = "cuda:1"
-model_id_or_path = "runwayml/stable-diffusion-v1-5"
-pipe = StableDiffusionImg2ImgPipeline.from_pretrained(model_id_or_path, torch_dtype=torch.float16)
-pipe = pipe.to(device)
+    # Move model to the specified device
+    model = model.to(device)
+    # Extract pixel values from the image
+    pixel_values = feature_extractor(images=image, return_tensors="pt").pixel_values
 
-init_image = Image.open("/mnt/nas/swethamagesh/emotion/Asyrp_official/test_images/afhq/contents/flickr_dog_000772.png")
-# init_image = init_image.resize((768, 512))
-init_image.thumbnail((512, 512))
+    # Generate text description for the image
+    with torch.no_grad():
+        model.to('cpu')
+        output_ids = model.generate(pixel_values, max_length=16, num_beams=4, return_dict_in_generate=True).sequences
 
-image_to_text = pipeline("image-to-text", model="nlpconnect/vit-gpt2-image-captioning")
-prompt = image_to_text("/mnt/nas/swethamagesh/emotion/Run_2/Accepting adolescents film/000c866c-800.jpg")
-print(prompt[0]['generated_text'])
+    # Decode the output text
+    preds = tokenizer.batch_decode(output_ids, skip_special_tokens=True)
+    preds = [pred.strip() for pred in preds]
 
-prompt = prompt[0]['generated_text']
-# images = pipe(prompt=prompt, image=init_image).images
-images = pipe(prompt=prompt, image=init_image, strength=0.75, guidance_scale=7.5).images
-images[0].save("/mnt/nas/swethamagesh/emotion/PiedPiper/edited_image.png")
+    return preds
+
+# Load the initial image
+init_image = Image.open('/mnt/nas/swethamagesh/emotion/Asyrp_official/custom/test/sad1.jpg')
+init_image = init_image.resize((768, 512))
+init_image.thumbnail((256, 256))
+
+# Predict text description of the image
+with Image.open('/mnt/nas/swethamagesh/emotion/Asyrp_official/custom/test/sad1.jpg') as image:
+    preds = predict(image)
+
+print(preds)
+
+# Construct prompt for image transformation
+prompt = str(preds[0]) + " and make the picture very very happy"
+
+# Initialize StableDiffusionPipeline
+model_id = "runwayml/stable-diffusion-v1-5"
+pipe = StableDiffusionPipeline.from_pretrained(model_id, torch_dtype=torch.float16, safety_checker=None,
+                                               requires_safety_checker=False)
+pipe = pipe.to("cuda")
+
+print(prompt)
+
+# Transform the image based on the prompt
+images = pipe(prompt, image=init_image, strength=0.1, guidance_scale=2).images
+for i in range(len(images)):
+    images[i].save(f"image_{i}.png")
